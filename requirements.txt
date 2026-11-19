@@ -1,0 +1,3 @@
+# No third-party dependencies.
+# Drop Key uses only what ships with macOS: AppleScript (osacompile, osascript),
+# /usr/bin/security and bash. Nothing to pip/npm/brew install.

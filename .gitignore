@@ -1,0 +1,10 @@
+# Built app (rebuild with ./build.sh)
+Drop Key.app/
+
+# Never commit secrets
+.env
+*.key
+*.pem
+credentials/
+
+.DS_Store

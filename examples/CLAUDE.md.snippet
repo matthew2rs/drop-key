@@ -1,0 +1,9 @@
+## Secrets (API keys, tokens)
+
+- Never ask me to paste a key into this chat, a file or the terminal.
+- When you need a new key, ask me to "Drop Key it as `<name>`" (use a short kebab-case name, e.g. `openai-api`). I'll save it with the Drop Key app. Then check it's there with `dropkey has <name>`.
+- Read keys only inside the command that uses them, e.g.
+  `OPENAI_API_KEY="$(dropkey get openai-api)" python3 script.py`
+  or pipe them straight into the tool that stores them.
+- Never print a key's value, never echo it, never write it into a file in this project, and never put it in a commit.
+- To see which keys exist, run `dropkey list`. It shows names only.

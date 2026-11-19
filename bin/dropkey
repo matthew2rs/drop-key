@@ -1,0 +1,51 @@
+#!/bin/bash
+# dropkey: read the keys you saved with Drop Key.app (macOS Keychain).
+#
+#   dropkey get <name>      print the key (pipe it straight into the command that needs it)
+#   dropkey has <name>      exit 0 if it exists, 1 if not (prints nothing)
+#   dropkey list            list key NAMES only, never values
+#   dropkey delete <name>   remove a key
+#
+# Service name: $DROPKEY_SERVICE, default "drop-key" (must match the app).
+set -euo pipefail
+
+SERVICE="${DROPKEY_SERVICE:-drop-key}"
+SEC=/usr/bin/security
+
+usage() { sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'; exit 2; }
+need_name() { [ -n "${1:-}" ] || { echo "dropkey: give a key name" >&2; exit 2; }; }
+
+cmd="${1:-}"; shift || true
+case "$cmd" in
+  get)
+    need_name "${1:-}"
+    if ! "$SEC" find-generic-password -s "$SERVICE" -a "$1" -w 2>"${TMPDIR:-/tmp}/dropkey-err.$$"; then
+      err="$(cat "${TMPDIR:-/tmp}/dropkey-err.$$" 2>/dev/null)"; rm -f "${TMPDIR:-/tmp}/dropkey-err.$$"
+      if echo "$err" | grep -qi "could not be found"; then
+        echo "dropkey: no key called '$1'. Open Drop Key.app and save it under that name." >&2
+      else
+        echo "dropkey: the Keychain refused ($err). If it's locked, run: security unlock-keychain" >&2
+      fi
+      exit 1
+    fi
+    rm -f "${TMPDIR:-/tmp}/dropkey-err.$$" ;;
+  has)
+    need_name "${1:-}"
+    "$SEC" find-generic-password -s "$SERVICE" -a "$1" >/dev/null 2>&1 ;;
+  list)
+    # Names only. Reads the item attributes, never the secret.
+    "$SEC" dump-keychain 2>/dev/null | awk -v svc="\"$SERVICE\"" '
+      /^keychain:/ { acct=""; svce="" }
+      /"acct"<blob>=/ { sub(/.*"acct"<blob>=/, ""); acct=$0 }
+      /"svce"<blob>=/ { sub(/.*"svce"<blob>=/, ""); svce=$0 }
+      acct != "" && svce == svc { gsub(/"/, "", acct); print acct; acct=""; svce="" }
+    ' | sort -u ;;
+  delete)
+    need_name "${1:-}"
+    if "$SEC" delete-generic-password -s "$SERVICE" -a "$1" >/dev/null 2>&1; then
+      echo "deleted $1"
+    else
+      echo "dropkey: no key called '$1'" >&2; exit 1
+    fi ;;
+  *) usage ;;
+esac
